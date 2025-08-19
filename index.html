@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Atual+ • Admin com Importação e Ajuda (Demo)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              orange: { DEFAULT: '#FF6A00', hover: '#E25E00', soft: 'rgba(255,106,0,0.12)' },
+              blue: { DEFAULT: '#0A66FF', hover: '#084EE0', soft: 'rgba(10,102,255,0.14)' }
+            }
+          },
+          boxShadow: {
+            glow: '0 10px 40px rgba(255,106,0,0.35)',
+            glowBlue: '0 10px 40px rgba(10,102,255,0.28)',
+            soft: '0 10px 30px rgba(2, 6, 23, 0.35)'
+          }
+        },
+        fontFamily: {
+          sans: ['Inter','ui-sans-serif','system-ui','Segoe UI','Roboto','Helvetica Neue','Arial']
+        }
+      }
+    }
+  </script>
+  <!-- SheetJS para Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    body {
+      background:
+        radial-gradient(900px 600px at 10% -10%, rgba(255,106,0,0.20), rgba(0,0,0,0) 60%),
+        radial-gradient(800px 500px at 110% 10%, rgba(10,102,255,0.18), rgba(0,0,0,0) 60%),
+        linear-gradient(180deg, #060C18, #071227 60%, #061022);
+      color: #E9F2FF;
+    }
+    .glass { background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04)); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(10px); }
+    .chip { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); }
+    .badge-blue { background: rgba(10,102,255,0.16); border: 1px solid rgba(10,102,255,0.36); color: #DCE8FF; }
+    .badge-orange { background: rgba(255,106,0,0.16); border: 1px solid rgba(255,106,0,0.40); color: #FFE9DC; }
+    .divider { height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.18), rgba(255,255,255,0)); }
+    .logo { letter-spacing: -0.02em; background: linear-gradient(90deg, #ffffff 0%, #FFEDD9 60%, #FFD6B3 100%); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: 0 0 30px rgba(255, 127, 42, 0.18); }
+    .plus-badge { background: linear-gradient(135deg, #FF6A00, #E25E00); box-shadow: 0 12px 34px rgba(255,106,0,0.35); }
+    .modal { background: rgba(6, 12, 24, 0.65); backdrop-filter: blur(8px); }
+    .help-fab { position: fixed; right: 20px; bottom: 20px; z-index: 60; }
+    .help-panel { position: fixed; right: 20px; bottom: 90px; width: 360px; max-width: calc(100vw - 40px); z-index: 60; }
+  </style>
+</head>
+<body class="font-sans">
+  <!-- Tela de Login -->
+  <section id="loginScreen" class="min-h-screen flex items-center justify-center px-6 py-10">
+    <div class="w-full max-w-6xl">
+      <div class="flex flex-col lg:flex-row items-center lg:items-stretch gap-8">
+        <div class="flex-1 glass rounded-3xl p-8 md:p-10 shadow-soft">
+          <div class="flex items-center gap-3">
+            <div class="plus-badge w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white text-xl">+</div>
+            <h1 class="logo text-4xl md:text-5xl font-extrabold">Atual+</h1>
+          </div>
+          <p class="text-slate-300 mt-3">Programa de pontos para licenciados. Acumule com parceiros e resgate após 60 dias.</p>
+          <div class="mt-6 grid sm:grid-cols-2 gap-4">
+            <div class="chip rounded-2xl p-4">
+              <div class="text-sm text-slate-300">Regras de pontos</div>
+              <div class="mt-1 font-semibold">1 ponto a cada R$ 1.000</div>
+            </div>
+            <div class="chip rounded-2xl p-4">
+              <div class="text-sm text-slate-300">Parceiros</div>
+              <div class="mt-1">Sandoz, Teuto, Medley, Santa Cruz, Panpharma, Profarma, Droga Center, Millenium</div>
+            </div>
+          </div>
+          <div class="mt-6 flex flex-wrap gap-3">
+            <span class="badge-blue px-3 py-1 rounded-full text-sm">Resgate liberado após 60 dias</span>
+            <span class="badge-orange px-3 py-1 rounded-full text-sm">Descontos 5% • 10% • 15%</span>
+            <span class="badge-blue px-3 py-1 rounded-full text-sm">Cashback R$20 • R$40 • R$60</span>
+          </div>
+          <p class="text-slate-400 text-xs mt-6">Demo no navegador. Para login real com servidor e banco, posso te guiar no próximo passo.</p>
+        </div>
+
+        <div class="w-full lg:w-[420px] space-y-5">
+          <div class="glass rounded-3xl p-7 transition cursor-pointer group hover:shadow-glow" id="cardLic">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-slate-300 text-sm">Entrar como</div>
+                <div class="text-2xl font-extrabold">Licenciado</div>
+              </div>
+              <div class="plus-badge w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white group-hover:scale-110 transition">L</div>
+            </div>
+            <p class="text-slate-300 text-sm mt-3">Acesse seus pontos e resgates.</p>
+            <button class="mt-5 w-full px-4 py-3 rounded-xl font-semibold text-white"
+              style="background:#FF6A00" onmouseover="this.style.background='#E25E00'"
+              onmouseout="this.style.background='#FF6A00'">Continuar</button>
+          </div>
+
+          <div class="glass rounded-3xl p-7 transition cursor-pointer group hover:shadow-glowBlue" id="cardAdmin">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-slate-300 text-sm">Entrar como</div>
+                <div class="text-2xl font-extrabold">Admin</div>
+              </div>
+              <div class="plus-badge w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white group-hover:scale-110 transition">A</div>
+            </div>
+            <p class="text-slate-300 text-sm mt-3">Gerencie compras, ranking e relatórios.</p>
+            <button class="mt-5 w-full px-4 py-3 rounded-xl font-semibold text-white"
+              style="background:#0A66FF" onmouseover="this.style.background='#084EE0'"
+              onmouseout="this.style.background='#0A66FF'">Continuar</button>
+            <p class="text-slate-400 text-xs mt-2">Use: marketing@drogariaatual.com.br / marketingatual</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal: Licenciado -->
+  <div id="modalLic" class="fixed inset-0 hidden items-center justify-center z-40">
+    <div class="modal absolute inset-0"></div>
+    <div class="relative z-50 w-full max-w-lg mx-4">
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-slate-300 text-sm">Atual+</div>
+            <h3 class="text-2xl font-extrabold mt-1">Entrar como Licenciado</h3>
+          </div>
+          <button id="closeLic" class="px-3 py-1 rounded-lg font-semibold text-white"
+            style="background:#0A66FF" onmouseover="this.style.background='#084EE0'"
+            onmouseout="this.style.background='#0A66FF'">Fechar</button>
+        </div>
+        <div class="divider my-4"></div>
+        <div class="grid gap-4">
+          <label class="text-sm text-slate-300">Selecione sua loja</label>
+          <select id="selectLicLogin" class="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"></select>
+          <button id="enterLic" class="mt-2 px-4 py-3 rounded-xl font-semibold text-white"
+            style="background:#FF6A00" onmouseover="this.style.background='#E25E00'"
+            onmouseout="this.style.background='#FF6A00'">Entrar</button>
+          <p class="text-slate-400 text-xs">No ambiente final, a entrada será por Nome + CPF.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Admin -->
+  <div id="modalAdmin" class="fixed inset-0 hidden items-center justify-center z-40">
+    <div class="modal absolute inset-0"></div>
+    <div class="relative z-50 w-full max-w-lg mx-4">
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-slate-300 text-sm">Atual+</div>
+            <h3 class="text-2xl font-extrabold mt-1">Entrar como Admin</h3>
+          </div>
+          <button id="closeAdmin" class="px-3 py-1 rounded-lg font-semibold text-white"
+            style="background:#FF6A00" onmouseover="this.style.background='#E25E00'"
+            onmouseout="this.style.background='#FF6A00'">Fechar</button>
+        </div>
+        <div class="divider my-4"></div>
+        <div class="grid gap-4">
+          <div>
+            <label class="text-sm text-slate-300">E-mail</label>
+            <input id="adminEmail" class="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20" placeholder="ex: marketing@drogariaatual.com.br" />
+          </div>
+          <div>
+            <label class="text-sm text-slate-300">Senha</label>
+            <input id="adminPass" type="password" class="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20" placeholder="••••••••" />
+          </div>
+          <button id="enterAdmin" class="px-4 py-3 rounded-xl font-semibold text-white"
+            style="background:#0A66FF" onmouseover="this.style.background='#084EE0'"
+            onmouseout="this.style.background='#0A66FF'">Entrar</button>
+          <p class="text-slate-400 text-xs">Demo local: marketing@drogariaatual.com.br / marketingatual</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div id="appWrapper" class="hidden">
+    <header class="max-w-7xl mx-auto px-6 pt-10">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="plus-badge w-9 h-9 rounded-xl flex items-center justify-center font-black text-white">+</div>
+          <div class="logo text-2xl font-extrabold">Atual+</div>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="btnSupportTop" class="px-4 py-2 rounded-xl font-semibold text-white"
+            style="background:#0A66FF" onmouseover="this.style.background='#084EE0'"
+            onmouseout="this.style.background='#0A66FF'">Falar com Suporte</button>
+          <div id="whoami" class="text-slate-300 text-sm"></div>
+          <button id="btnLogout" class="px-4 py-2 rounded-xl font-semibold text-white"
+            style="background:#0A66FF" onmouseover="this.style.background='#084EE0'"
+            onmouseout="this.style.background='#0A66FF'">Sair</button>
+        </div>
+      </div>
+      <div class="mt-6 glass rounded-2xl p-5">
+        <div class="flex flex-wrap gap-3 items-center">
+          <span class="badge-blue px-3 py-1 rounded-full text-sm">1 ponto a cada R$ 1.000</span>
+          <span class="chip px-3 py-1 rounded-full text-sm">Parceiros: Sandoz, Teuto, Medley, Santa Cruz, Panpharma, Profarma, Droga Center, Millenium</span>
+          <span class="badge-orange px-3 py-1 rounded-full text-sm">Resgate após 60 dias</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+      <div class="glass rounded-2xl p-5">
+        <div id="tabsBar" class="flex gap-2 mb-6 overflow-x-auto">
+          <button id="tabCadastro" class="tab-btn px-4 py-2 rounded-xl font-semibold text-white"
+            style="background:#FF6A00" onmouseover="this.style.background='#E25E00'"
+            onmouseout="this.style.background='#FF6A00'">Cadastro de Licenciados</button>
+          <button id="tabCompras" class="tab-btn px-4 py-2 rounded-xl" style="background:rgba(255,255,255,0.10)">Registro/Importação</button>
+          <button id="tabPainel" class="tab-btn px-4 py-2 rounded-xl" style="background:rgba(255,255,255,0.10)">Painel do Licenciado</button>
+          <button id="tabAdmin" class="tab-btn px-4 py-2 rounded-xl" style="background:rgba(255,255,255,0.10)">Admin</button>
+        </div>
+
+        <!-- Cadastro -->
+        <section id="secCadastro" class="space-y-6">
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="glass rounded-xl p-5">
+              <h2 class="text-xl font-bold mb-3">Novo Licenciado</h2>
+              <div class="grid gap-4">
+                <div>
+                  <label class="block text-sm text-slate-300 mb-1">Nome/Razão Social</label>
+                  <input id="licName" class="w-full px-4 py-2 rounded-xl bg-white/10 border border-white/20" placeholder="Ex: Drogaria Exemplo LTDA" />
+                </div>
+                <div>
+                  <label class="block text-sm text-slate-300 mb-1">CPF/CNPJ</label>
+                  <input id="licDoc" class="w-full px-4 py-2 rounded-xl bg-white/10 border border-white/20" placeholder="CNPJ" />
+                </div>
+                <div>
+                  <label class="block text-sm text-slate-300 mb-1">Quantidade de Lojas</label>
+                  <input id="licStores" type="number" min="1" value="1" class="w-full px-4 py-2 rounded-xl bg-white/10 border border-white/20" />
+                </div>
+                <button id="btnAddLic" class="w-full mt-2 px-4 py-2 rounded-xl font-semibold text-white"
+                  style="background:#FF6A00" onmouseover="this.style.background='#E25E00'"
+                  onmouseout="this.style.background='#FF6A00'">Cadastrar</button>
+                <p class="text-slate-400 text-sm">Demo local. Dados não persistem após recarregar.</p>
+              </div>
+            </div>
+            <div class="glass rounded-xl p-5">
+              <div class="flex items-center justify-between">
+                <h2 class="text-xl font-bold mb-3">Licenciados</h2>
+                <div class="flex gap-2">
+                  <input id="searchLic" placeholder="Buscar por nome ou doc..." class="px-3 py-2 rounded-xl bg-white/10 border border-white/20" />
+                  <button id="btnExportLic" class="px-3 py-2 rounded-xl font-semibold text-white"
+                    style="background:#0A66FF" onmouseover="this.style.background='#084EE0'"
+                    onmouseout="this.style.background='#0A66FF'">Exportar CSV</button>
+                </div>
+              </div>
+              <div class="divider my-3"></div>
+              <div id="licList" class="space-y-3 max-h-96 overflow-auto pr-1"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Compras -->
+        <section id="secCompras" class="space-y-6 hidden">
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="glass rounded-xl p-5">
+              <h2 class="text-xl font-bold mb-3">Adicionar Compra Manual</h2>
+              <div class="grid gap-4">
+                <div>
+                  <label class="block text-sm text-slate-300 mb-1">Licenciado</label>
+                  <select id="purchaseLic" class="w-full px-4 py-2 rounded-xl bg-white/10 border border-white/20"></select>
+                </div>
+                <div>
+                  <label class="block text-sm text-slate-300 mb-1">Parceiro</label>
+                  <select id="purchasePartner" class="w-full px-4 py-2 rounded-xl bg-white/10 border border-white/20">
+                    <option>Sandoz</option><option>Teuto</option><option>Medley</option><option>Santa Cruz</option><option>Panpharma</option><option>Profarma</option><option>Droga Center</option><option>Millenium</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm text-slate-300 mb-1">Valor da Compra (R$)</label>
+                  <input id="purchaseValue" type="number" min="0" step="0.01" class="w-full px-4 py-2 rounded-xl bg-white/10 border border-white/20" placeholder="Ex: 3500.00" />
+                </div>
+                <div>
+                  <label class="block text-sm text-slate-300 mb-1">Data da Compra</label>
+                  <input id="purchaseDate" type="date" class="w-full px-4 py-2 rounded-xl bg-white/10 border border-white/20" />
+                </div>
+                <button id="btnAddPurchase" class="w-full mt-2 px-4 py-2 rounded-xl font-semibold text-white"
+                  style="background:#0A66FF" onmouseover="this.style.background='#084EE0'"
+                  onmouseout="this.style.background='#0A66FF'">Registrar Compra</button>
+              </div>
+            </div>
+            <div class="glass rounded-xl p-5">
+              <h2 class="text-xl font-bold mb-3">Importar Planilha Excel</h2>
+              <p class="text-slate-300 text-sm mb-3">Formato esperado: Licenciado | Parceiro | ValorCompra | DataCompra</p>
+              <div class="flex items-center gap-3">
+                <input id="excelFile" type="file" accept=".xlsx,.xls" class="block w-full text-sm text-slate-200 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:text-white"
+                  />
+                <button id="btnImportExcel" class="px-4 py-2 rounded-xl font-semibold text-white"
+                  style="background:#FF6A00" onmouseover="this.style.background='#E25E00'"
+                  onmouseout="this.style.background='#FF6A00'">Importar</button>
+              </div>
+              <div id="excelFeedback" class="mt-4 text-slate-300 text-sm"></div>
+            </div>
+          </div>
+
+          <div class="glass rounded-2xl p-5">
+            <div class="flex items-center justify-between">
+              <h2 class="text-xl font-bold mb-3">Histórico de Compras</h2>
+              <div class="flex gap-2">
+                <select id="filterPurchasesLic" class="px-3 py-2 rounded-xl bg-white/10 border border-white/20"></select>
+                <button id="btnExportPurch" class="px-3 py-2 rounded-xl font-semibold text-white"
+                  style="background:#0A66FF" onmouseover="this.style.background='#084EE0'"
+                  onmouseout="this.style.background='#0A66FF'">Exportar CSV</button>
+              </div>
+            </div>
+            <div class="divider my-3"></div>
+            <div id="purchaseList" class="space-y-3 max-h-96 overflow-auto pr-1"></div>
+          </div>
+        </section>
+
+        <!-- Painel Licenciado -->
+        <section id="secPainel" class="space-y-6 hidden">
+          <div class="glass rounded-xl p-5">
+            <div class="flex flex-col md:flex-row md:items-end gap-4 md:gap-6">
+              <div class="flex-1">
+                <label class="block text-sm text-slate-300 mb-1">Selecionar Licenciado</label>
+                <select id="panelLic" class="w-full px-4 py-2 rounded-xl bg-white/10 border border-white/20"></select>
+                <p id="panelHint" class="text-slate-400 text-xs mt-1"></p>
+              </div>
+              <button id="btnRefreshPanel" class="px-4 py-2 rounded-xl font-semibold text-white"
+                style="background:#FF6A00" onmouseover="this.style.background='#E25E00'"
+                onmouseout="this.style.background='#FF6A00'">Atualizar</button>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-3 gap-6">
+            <div class="glass rounded-xl p-5">
+              <h3 class="text-sm text-slate-300">Pontos Acumulados</h3>
+              <p id="panelPoints" class="text-3xl font-extrabold mt-1">0</p>
+              <p class="text-slate-400 text-sm mt-2">1 ponto a cada R$ 1.000 em compras.</p>
+            </div>
+            <div class="glass rounded-xl p-5">
+              <h3 class="text-sm text-slate-300">Resgates Disponíveis</h3>
+              <div id="panelRewards" class="mt-2 space-y-2"></div>
+            </div>
+            <div class="glass rounded-xl p-5">
+              <h3 class="text-sm text-slate-300">Próximas liberações</h3>
+              <div id="panelUnlocks" class="mt-2 space-y-2"></div>
+            </div>
+          </div>
+
+          <div class="glass rounded-xl p-5">
+            <h3 class="text-lg font-bold mb-3">Resgatar Recompensas</h3>
+            <div class="grid md:grid-cols-2 gap-6">
+              <div class="chip rounded-xl p-4">
+                <h4 class="font-semibold">Desconto na mensalidade</h4>
+                <p class="text-slate-300 text-sm mt-1">10 pts → 5% | 20 pts → 10% | 30 pts → 15%</p>
+                <div class="flex items-center gap-3 mt-3">
+                  <select id="discountTier" class="px-3 py-2 rounded-xl bg-white/10 border border-white/20">
+                    <option value="10">5% (10 pontos)</option>
+                    <option value="20">10% (20 pontos)</option>
+                    <option value="30">15% (30 pontos)</option>
+                  </select>
+                  <button id="btnRedeemDiscount" class="px-4 py-2 rounded-xl font-semibold text-white"
+                    style="background:#FF6A00" onmouseover="this.style.background='#E25E00'"
+                    onmouseout="this.style.background='#FF6A00'">Resgatar</button>
+                </div>
+                <p id="discountMsg" class="text-slate-300 text-sm mt-2"></p>
+              </div>
+              <div class="chip rounded-xl p-4">
+                <h4 class="font-semibold">Cashback</h4>
+                <p class="text-slate-300 text-sm mt-1">10 pts → R$20 | 20 pts → R$40 | 30 pts → R$60</p>
+                <div class="flex items-center gap-3 mt-3">
+                  <select id="cashbackTier" class="px-3 py-2 rounded-xl bg-white/10 border border-white/20">
+                    <option value="10">R$20 (10 pontos)</option>
+                    <option value="20">R$40 (20 pontos)</option>
+                    <option value="30">R$60 (30 pontos)</option>
+                  </select>
+                  <button id="btnRedeemCashback" class="px-4 py-2 rounded-xl font-semibold text-white"
+                    style="background:#0A66FF" onmouseover="this.style.background='#084EE0'"
+                    onmouseout="this.style.background='#0A66FF'">Resgatar</button>
+                </div>
+                <p id="cashbackMsg" class="text-slate-300 text-sm mt-2"></p>
+              </div>
+            </div>
+
+            <div class="divider my-5"></div>
+            <h3 class="text-lg font-bold mb-3">Histórico de Resgates</h3>
+            <div id="redeemHistory" class="space-y-2"></div>
+          </div>
+        </section>
+
+        <!-- Admin -->
+        <section id="secAdmin" class="space-y-6 hidden">
+          <div class="glass rounded-xl p-5">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-bold mb-3">Relatórios e Importação</h3>
+              <div class="flex gap-2">
+                <button id="btnReportCompras" class="px-3 py-2 rounded-xl font-semibold text-white"
+                  style="background:#0A66FF" onmouseover="this.style.background='#084EE0'"
+                  onmouseout="this.style.background='#0A66FF'">Compras</button>
+                <button id="btnReportPontos" class="px-3 py-2 rounded-xl font-semibold text-white"
+                  style="background:#FF6A00" onmouseover="this.style.background='#E25E00'"
+                  onmouseout="this.style.background='#FF6A00'">Pontos</button>
+                <button id="btnReportRecomp" class="px-3 py-2 rounded-xl font-semibold text-white"
+                  style="background:#0A66FF" onmouseover="this.style.background='#084EE0'"
+                  onmouseout="this.style.background='#0A66FF'">Recompensas</button>
+              </div>
+            </div>
+            <div class="divider my-3"></div>
+
+            <!-- Bloco de Importação em destaque -->
+            <div class="grid lg:grid-cols-3 gap-6">
+              <div class="glass rounded-xl p-5 lg:col-span-2">
+                <h4 class="font-semibold text-lg">Importar Compras (Excel)</h4>
+                <p class="text-slate-300 text-sm mt-1">Colunas: Licenciado | Parceiro | ValorCompra | DataCompra</p>
+                <div class="mt-3 flex items-center gap-3">
+                  <input id="excelFileAdmin" type="file" accept=".xlsx,.xls" class="block w-full text-sm text-slate-200 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:text-white">
+                  <button id="btnImportExcelAdmin" class="px-4 py-2 rounded-xl font-semibold text-white"
+                    style="background:#FF6A00" onmouseover="this.style.background='#E25E00'"
+                    onmouseout="this.style.background='#FF6A00'">Importar</button>
+                </div>
+                <div id="excelFeedbackAdmin" class="mt-3 text-slate-300 text-sm"></div>
+                <div id="excelSummaryAdmin" class="mt-3 hidden">
+                  <div class="chip rounded-xl p-4">
+                    <div id="excelSummaryText" class="text-slate-200"></div>
+                    <p class="text-slate-400 text-sm mt-1">A lista de licenciados e o ranking foram atualizados automaticamente.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="glass rounded-xl p-5">
+                <h4 class="font-semibold text-lg">Contato e Suporte</h4>
+                <p class="text-slate-300 text-sm mt-1">Precisa de ajuda? Fale com nosso time.</p>
+                <div class="mt-3 space-y-2">
+                  <a href="mailto:suporte@drogariaatual.com.br" class="block text-center px-4 py-2 rounded-xl font-semibold text-white" style="background:#0A66FF">Enviar e-mail</a>
+                  <a target="_blank" href="https://wa.me/5500000000000?text=Olá%20Suporte%20Atual%2B%2C%20preciso%20de%20ajuda%20com%20o%20programa%20de%20pontos." class="block text-center px-4 py-2 rounded-xl font-semibold text-white" style="background:#25D366">Abrir WhatsApp</a>
+                  <button id="btnOpenHelp" class="w-full px-4 py-2 rounded-xl font-semibold text-white"
+                    style="background:#FF6A00">Abrir Ajuda</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="divider my-5"></div>
+            <div id="reportArea" class="space-y-2 max-h-96 overflow-auto pr-1"></div>
+          </div>
+
+          <div class="glass rounded-xl p-5">
+            <h3 class="text-lg font-bold mb-3">Ranking por Pontos</h3>
+            <div id="rankingList" class="space-y-2"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="max-w-7xl mx-auto px-6 pb-10">
+      <div class="text-slate-400 text-sm">Demo 100% no navegador. Para publicar com login real, integramos servidor e autenticação.</div>
+    </footer>
+  </div>
+
+  <!-- Modal Suporte -->
+  <div id="modalSupport" class="fixed inset-0 hidden items-center justify-center z-50">
+    <div class="modal absolute inset-0"></div>
+    <div class="relative z-50 w-full max-w-md mx-4">
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-start justify-between">
+          <h3 class="text-xl font-extrabold">Suporte Atual+</h3>
+          <button id="closeSupport" class="px-3 py-1 rounded-lg font-semibold text-white" style="background:#0A66FF">Fechar</button>
+        </div>
+        <div class="divider my-4"></div>
+        <div class="space-y-3">
+          <a href="mailto:suporte@drogariaatual.com.br" class="block text-center px-4 py-2 rounded-xl font-semibold text-white" style="background:#0A66FF">Enviar e-mail</a>
+          <a target="_blank" href="https://wa.me/5500000000000?text=Olá%20Suporte%20Atual%2B%2C%20preciso%20de%20ajuda." class="block text-center px-4 py-2 rounded-xl font-semibold text-white" style="background:#25D366">Abrir WhatsApp</a>
+          <p class="text-slate-300 text-sm text-center">Horário comercial • Resposta rápida</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ajuda / Agente -->
+  <button id="fabHelp" class="help-fab px-4 py-3 rounded-full font-bold text-white shadow-glow" style="background:#FF6A00">Ajuda</button>
+  <div id="helpPanel" class="help-panel hidden">
+    <div class="glass rounded-2xl p-4">
+      <div class="flex items-center justify-between">
+        <h4 class="font-bold">Ajuda • Atual+</h4>
+        <button id="closeHelpPanel" class="px-3 py-1 rounded-lg font-semibold text-white" style="background:#0A66FF">Fechar</button>
+      </div>
+      <div class="divider my-3"></div>
+      <div class="space-y-2">
+        <button class="faq-btn w-full text-left chip rounded-xl p-3" data-q="como-funciona">Como funciona o programa de pontos?</button>
+        <button class="faq-btn w-full text-left chip rounded-xl p-3" data-q="prazo-resgate">Qual prazo de resgate de pontos?</button>
+        <button class="faq-btn w-full text-left chip rounded-xl p-3" data-q="validade-pontos">Qual a validade dos meus pontos?</button>
+      </div>
+      <div id="helpAnswer" class="mt-3 text-slate-200 text-sm"></div>
+      <div class="divider my-3"></div>
+      <div class="flex items-center gap-2">
+        <input id="helpInput" class="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20" placeholder="Digite sua dúvida..." />
+        <button id="helpSend" class="px-3 py-2 rounded-xl font-semibold text-white" style="background:#FF6A00">Perguntar</button>
+      </div>
+      <p class="text-slate-400 text-xs mt-2">Demo local: respostas baseadas nas regras do programa exibidas aqui.</p>
+    </div>
+  </div>
+
+  <script>
+    // Estado (demo local)
+    const state = {
+      session: { role: null, licId: null },
+      licensors: [],
+      purchases: [],
+      redemptions: [],
+    };
+    const PARTNERS = ["Sandoz","Teuto","Medley","Santa Cruz","Panpharma","Profarma","Droga Center","Millenium"];
+    const POINTS_PER_1000 = 1;
+    const RELEASE_DAYS = 60;
+    const discountMap = {10:"5%",20:"10%",30:"15%"};
+    const cashbackMap = {10:20,20:40,30:60};
+    const byId = id => document.getElementById(id);
+    const fmtBRL = v => Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+    const fmtDate = d => new Date(d).toLocaleDateString('pt-BR');
+    const addDays = (dateStr, days) => { const d = new Date(dateStr); d.setDate(d.getDate()+days); return d; };
+    const today = () => new Date();
+    const toCSV = rows => rows.map(r=>r.map(s=>`"${String(s).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const downloadFile = (filename, content, mime='text/csv;charset=utf-8;') => { const blob=new Blob([content],{type:mime}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); };
+
+    // Pontos
+    const purchasesForLic = licId => state.purchases.filter(p=>p.licId===licId);
+    function pointsFromPurchases(licId){ const total = purchasesForLic(licId).reduce((s,p)=>s+Number(p.value||0),0); return Math.floor(total/1000)*POINTS_PER_1000; }
+    function unlockedPoints(licId){
+      const eligibleValue = purchasesForLic(licId).filter(p=>addDays(p.date,RELEASE_DAYS)<=today()).reduce((s,p)=>s+Number(p.value||0),0);
+      const pointsEligible = Math.floor(eligibleValue/1000)*POINTS_PER_1000;
+      const spent = state.redemptions.filter(r=>r.licId===licId).reduce((s,r)=>s+r.pointsCost,0);
+      return Math.max(pointsEligible - spent, 0);
+    }
+    const nextUnlocks = licId => purchasesForLic(licId).filter(p=>addDays(p.date,RELEASE_DAYS)>today()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5).map(p=>({partner:p.partner,date:addDays(p.date,RELEASE_DAYS),value:p.value}));
+    const canRedeem = (licId,tier)=> unlockedPoints(licId)>=tier;
+    function redeem(licId,type,tier){ if(!canRedeem(licId,tier)) return {ok:false,msg:"Pontos insuficientes no momento."}; const amount = type==='discount'?discountMap[tier]:cashbackMap[tier]; state.redemptions.push({id:crypto.randomUUID(),licId,type,tier,pointsCost:tier,amount,date:new Date().toISOString()}); return {ok:true}; }
+
+    // UI helpers
+    function show(el){ el.classList.remove('hidden'); el.classList.add('flex'); }
+    function hide(el){ el.classList.add('hidden'); el.classList.remove('flex'); }
+    function switchTab(targetId){
+      ['secCadastro','secCompras','secPainel','secAdmin'].forEach(id=>byId(id).classList.add('hidden'));
+      byId(targetId).classList.remove('hidden');
+      const map=[{btn:'tabCadastro',sec:'secCadastro'},{btn:'tabCompras',sec:'secCompras'},{btn:'tabPainel',sec:'secPainel'},{btn:'tabAdmin',sec:'secAdmin'}];
+      map.forEach(t=>{
+        const btn=byId(t.btn);
+        if(t.sec===targetId){ btn.style.background = t.btn==='tabCadastro' ? '#FF6A00' : '#0A66FF'; btn.style.color='#fff'; btn.classList.add('font-semibold'); }
+        else { btn.style.background='rgba(255,255,255,0.10)'; btn.style.color=''; btn.classList.remove('font-semibold'); }
+      });
+    }
+    function applyRoleUI(){
+      const isAdmin = state.session.role==='admin'; const isLic = state.session.role==='lic';
+      byId('tabCadastro').classList.toggle('hidden',!isAdmin);
+      byId('tabCompras').classList.toggle('hidden',!isAdmin);
+      byId('tabAdmin').classList.toggle('hidden',!isAdmin);
+      byId('tabPainel').classList.toggle('hidden',!(isAdmin||isLic));
+      if(isLic && state.session.licId){ switchTab('secPainel'); byId('panelLic').value=state.session.licId; byId('panelLic').disabled=true; byId('panelHint').textContent='Fixado no seu CNPJ. Para trocar, use “Sair”.'; }
+      if(isAdmin){ byId('panelLic').disabled=false; byId('panelHint').textContent=''; switchTab('secCadastro'); }
+    }
+    function refreshLicDropdowns(){
+      const selects=[byId('purchaseLic'),byId('filterPurchasesLic'),byId('panelLic'),byId('selectLicLogin')];
+      selects.forEach(sel=>{
+        if(!sel) return;
+        const keepFirst = sel.id==='filterPurchasesLic' || sel.id==='panelLic';
+        sel.innerHTML='';
+        if(keepFirst){ const o=document.createElement('option'); o.value=''; o.textContent= sel.id==='filterPurchasesLic'?'Todos':'Selecione'; sel.appendChild(o); }
+        state.licensors.forEach(l=>{ const o=document.createElement('option'); o.value=l.id; o.textContent=`${l.name} (${l.doc})`; sel.appendChild(o); });
+      });
+    }
+    function renderLicList(){
+      const q=(byId('searchLic').value||'').toLowerCase(); const box=byId('licList'); box.innerHTML='';
+      const filtered=state.licensors.filter(l=>l.name.toLowerCase().includes(q)||l.doc.toLowerCase().includes(q));
+      if(filtered.length===0){ box.innerHTML='<p class="text-slate-400">Nenhum licenciado encontrado.</p>'; return; }
+      filtered.forEach(l=>{
+        const total=pointsFromPurchases(l.id);
+        const card=document.createElement('div'); card.className='chip rounded-xl p-4 flex items-start justify-between gap-4';
+        card.innerHTML=`
+          <div>
+            <div class="font-semibold">${l.name}</div>
+            <div class="text-slate-300 text-sm">${l.doc}</div>
+            <div class="text-slate-300 text-sm mt-1">Pontos totais: <span class="font-semibold">${total}</span></div>
+          </div>
+          <div class="flex gap-2">
+            <button data-id="${l.id}" class="btnEdit px-3 py-1 rounded-lg font-semibold text-white" style="background:#0A66FF">Editar</button>
+            <button data-id="${l.id}" class="btnDel px-3 py-1 rounded-lg font-semibold text-white" style="background:#FF6A00">Excluir</button>
+          </div>`;
+        box.appendChild(card);
+      });
+      box.querySelectorAll('.btnEdit').forEach(b=>{ b.onclick=()=>{ const l=state.licensors.find(x=>x.id===b.dataset.id); if(!l) return; const name=prompt('Nome:',l.name); if(!name) return; const doc=prompt('CNPJ/CPF:',l.doc); if(!doc) return; const stores=Number(prompt('Qtd. Lojas:',l.stores)); if(!stores||stores<1) return; l.name=name; l.doc=doc; l.stores=stores; refreshLicDropdowns(); renderLicList(); renderPurchases(); renderRanking(); updatePanel(); }; });
+      box.querySelectorAll('.btnDel').forEach(b=>{ b.onclick=()=>{ if(!confirm('Excluir licenciado e suas compras?')) return; const id=b.dataset.id; state.licensors=state.licensors.filter(x=>x.id!==id); state.purchases=state.purchases.filter(p=>p.licId!==id); state.redemptions=state.redemptions.filter(r=>r.licId!==id); refreshLicDropdowns(); renderLicList(); renderPurchases(); renderRanking(); updatePanel(); }; });
+    }
+    function renderPurchases(){
+      const box=byId('purchaseList'); const licId=byId('filterPurchasesLic').value||''; const items=state.purchases.filter(p=>!licId||p.licId===licId).sort((a,b)=>new Date(b.date)-new Date(a.date));
+      box.innerHTML=''; if(items.length===0){ box.innerHTML='<p class="text-slate-400">Sem compras registradas.</p>'; return; }
+      items.forEach(p=>{
+        const lic=state.licensors.find(l=>l.id===p.licId); const unlock=addDays(p.date,RELEASE_DAYS); const liberado=unlock<=today();
+        const row=document.createElement('div'); row.className='chip rounded-xl p-4 flex items-center justify-between gap-4';
+        row.innerHTML=`
+          <div class="min-w-0">
+            <div class="font-semibold truncate">${lic?lic.name:'—'} • ${p.partner}</div>
+            <div class="text-slate-300 text-sm">Comprado em ${fmtDate(p.date)} • ${fmtBRL(p.value)}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            ${liberado?'<span class="badge-blue px-2 py-1 rounded-full text-xs">Liberado</span>':`<span class="badge-orange px-2 py-1 rounded-full text-xs">Libera em ${fmtDate(unlock)}</span>`}
+            <button data-id="${p.id}" class="btnEditP px-3 py-1 rounded-lg font-semibold text-white" style="background:#0A66FF">Editar</button>
+            <button data-id="${p.id}" class="btnDelP px-3 py-1 rounded-lg font-semibold text-white" style="background:#FF6A00">Excluir</button>
+          </div>`;
+        box.appendChild(row);
+      });
+      box.querySelectorAll('.btnEditP').forEach(b=>{ b.onclick=()=>{ const p=state.purchases.find(x=>x.id===b.dataset.id); if(!p) return; const partner=prompt('Parceiro:',p.partner); if(!partner||!PARTNERS.includes(partner)) { alert('Parceiro inválido.'); return; } const value=Number(prompt('Valor (R$):',p.value)); if(!(value>=0)) return; const date=prompt('Data (YYYY-MM-DD):',p.date.slice(0,10)); if(!date) return; p.partner=partner; p.value=value; p.date=new Date(date).toISOString(); renderPurchases(); renderRanking(); updatePanel(); }; });
+      box.querySelectorAll('.btnDelP').forEach(b=>{ b.onclick=()=>{ if(!confirm('Excluir esta compra?')) return; state.purchases=state.purchases.filter(x=>x.id!==b.dataset.id); renderPurchases(); renderRanking(); updatePanel(); }; });
+    }
+    function renderPanelRewards(licId){
+      const up=unlockedPoints(licId); const wrap=byId('panelRewards'); wrap.innerHTML='';
+      const tiers=[10,20,30]; if(!tiers.some(t=>up>=t)){ wrap.innerHTML='<p class="text-slate-400">Nenhum resgate disponível ainda.</p>'; return; }
+      tiers.forEach(t=>{ const can=up>=t; const item=document.createElement('div'); item.className='chip rounded-lg p-3 flex items-center justify-between'; item.innerHTML=`<div class="text-sm"><div><span class="font-semibold">${t} pontos</span> → Desconto ${discountMap[t]}</div><div>ou Cashback ${fmtBRL(cashbackMap[t])}</div></div><span class="${can?'badge-blue':'chip'} px-2 py-1 rounded-full text-xs">${can?'Disponível':'Indisponível'}</span>`; wrap.appendChild(item); });
+    }
+    function renderPanelUnlocks(licId){
+      const list=byId('panelUnlocks'); list.innerHTML=''; const up=nextUnlocks(licId); if(up.length===0){ list.innerHTML='<p class="text-slate-400">Sem liberações pendentes.</p>'; return; }
+      up.forEach(u=>{ const item=document.createElement('div'); item.className='chip rounded-lg p-3 flex items-center justify-between'; item.innerHTML=`<div class="text-sm"><div>${u.partner}</div><div class="text-slate-300">Valor: ${fmtBRL(u.value)}</div></div><div class="text-sm">Liberação: <span class="font-semibold">${fmtDate(u.date)}</span></div>`; list.appendChild(item); });
+    }
+    function renderRedeemHistory(licId){
+      const box=byId('redeemHistory'); box.innerHTML=''; const rows=state.redemptions.filter(r=>r.licId===licId).sort((a,b)=>new Date(b.date)-new Date(a.date));
+      if(rows.length===0){ box.innerHTML='<p class="text-slate-400">Sem resgates ainda.</p>'; return; }
+      rows.forEach(r=>{ const el=document.createElement('div'); el.className='chip rounded-lg p-3 flex items-center justify-between'; el.innerHTML=`<div class="text-sm"><div class="font-semibold">${r.type==='discount'?'Desconto':'Cashback'}</div><div class="text-slate-300">${r.tier} pontos • ${r.type==='discount' ? ('Desconto '+discountMap[r.tier]) : ('Valor '+fmtBRL(r.amount))}</div></div><div class="text-sm">${fmtDate(r.date)}</div>`; box.appendChild(el); });
+    }
+    function renderRanking(){
+      const box=byId('rankingList'); if(!box) return; box.innerHTML='';
+      const items=state.licensors.map(l=>({lic:l,points:pointsFromPurchases(l.id),unlocked:unlockedPoints(l.id)})).sort((a,b)=>b.points-a.points).slice(0,50);
+      if(items.length===0){ box.innerHTML='<p class="text-slate-400">Sem licenciados cadastrados.</p>'; return; }
+      items.forEach((it,idx)=>{ const line=document.createElement('div'); line.className='chip rounded-lg p-3 flex items-center justify-between'; line.innerHTML=`<div class="flex items-center gap-3"><div class="w-7 h-7 rounded-full" style="background:#0A66FF; color:white; display:flex; align-items:center; justify-content:center; font-weight:700">${idx+1}</div><div><div class="font-semibold">${it.lic.name}</div><div class="text-slate-300 text-xs">Pontos totais: ${it.points} • Disponíveis: ${it.unlocked}</div></div></div><div class="text-sm">${it.lic.doc}</div>`; box.appendChild(line); });
+    }
+    function updatePanel(){
+      const licId=byId('panelLic').value||''; const elPoints=byId('panelPoints'); byId('discountMsg').textContent=''; byId('cashbackMsg').textContent='';
+      if(!licId){ elPoints.textContent='0'; byId('panelRewards').innerHTML='<p class="text-slate-400">Selecione um licenciado.</p>'; byId('panelUnlocks').innerHTML=''; byId('redeemHistory').innerHTML=''; return; }
+      elPoints.textContent=pointsFromPurchases(licId); renderPanelRewards(licId); renderPanelUnlocks(licId); renderRedeemHistory(licId);
+    }
+
+    // Import Excel (tela Compras)
+    function importExcelFrom(inputEl, feedbackEl, summaryEl, summaryTextEl){
+      const file = inputEl.files && inputEl.files[0];
+      if(!file){ alert('Selecione um arquivo Excel.'); return; }
+      feedbackEl.textContent='Lendo planilha...';
+      const reader=new FileReader();
+      reader.onload=(e)=>{
+        try{
+          const data=new Uint8Array(e.target.result); const wb=XLSX.read(data,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]]; const json=XLSX.utils.sheet_to_json(ws,{defval:''});
+          let imported=0, skipped=0, createdLic=0;
+          json.forEach(row=>{
+            const licName=String(row.Licenciado||'').trim(); const partner=String(row.Parceiro||'').trim(); const value=Number(row.ValorCompra||0); const dateRaw=row.DataCompra;
+            if(!licName || !partner || !(value>=0) || !dateRaw){ skipped++; return; }
+            if(!PARTNERS.includes(partner)){ skipped++; return; }
+            let lic=state.licensors.find(l=>l.name.toLowerCase()===licName.toLowerCase());
+            if(!lic){ lic={id:crypto.randomUUID(), name:licName, email:'', doc:'', stores:1}; state.licensors.push(lic); createdLic++; }
+            let d;
+            if(typeof dateRaw==='number'){ const ds=XLSX.SSF.parse_date_code(dateRaw); d=new Date(Date.UTC(ds.y,ds.m-1,ds.d)); }
+            else { d=new Date(dateRaw); if(isNaN(d)){ skipped++; return; } }
+            state.purchases.push({id:crypto.randomUUID(), licId:lic.id, partner, value, date:d.toISOString()});
+            imported++;
+          });
+          refreshLicDropdowns(); renderLicList(); renderPurchases(); renderRanking(); updatePanel();
+          feedbackEl.innerHTML = `<span class="badge-blue px-2 py-1 rounded-full">Importadas: ${imported}</span> <span class="ml-2 badge-orange px-2 py-1 rounded-full">Ignoradas: ${skipped}</span>`;
+          if(summaryEl && summaryTextEl){
+            summaryEl.classList.remove('hidden');
+            summaryTextEl.innerHTML = `Leitura concluída! <b>${imported}</b> compras adicionadas, <b>${createdLic}</b> licenciados criados, <b>${skipped}</b> linhas ignoradas.`;
+          }
+          alert('Importação concluída! Pontos atualizados na aba de Licenciados.');
+        }catch(err){ console.error(err); alert('Falha ao ler o Excel. Verifique o formato.'); feedbackEl.textContent=''; }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Ajuda demo (FAQ)
+    const FAQ_ANSWERS = {
+      'como-funciona': 'Você acumula 1 ponto a cada R$ 1.000 em compras com os parceiros participantes. Após o período de liberação, você pode trocar pontos por desconto na mensalidade (5%, 10% ou 15%) ou cashback (R$20, R$40 ou R$60).',
+      'prazo-resgate': 'Os pontos ficam disponíveis para resgate 60 dias após a compra correspondente. Assim garantimos conferência e auditoria dos lançamentos.',
+      'validade-pontos': 'Os pontos não expiram dentro deste período de demonstração. Para o ambiente oficial, sugerimos política de validade anual com comunicação prévia. Podemos ajustar conforme sua regra.'
+    };
+    function answerHelp(qkey, freeText){
+      const box = byId('helpAnswer');
+      let text = '';
+      if(qkey && FAQ_ANSWERS[qkey]) text = FAQ_ANSWERS[qkey];
+      else {
+        const t = (freeText||'').toLowerCase();
+        if(t.includes('como') && t.includes('funciona')) text = FAQ_ANSWERS['como-funciona'];
+        else if(t.includes('prazo') || t.includes('resgate')) text = FAQ_ANSWERS['prazo-resgate'];
+        else if(t.includes('validade') || t.includes('expira')) text = FAQ_ANSWERS['validade-pontos'];
+        else text = 'Posso ajudar com: como funciona o programa, prazo para resgate e validade dos pontos. Tente uma dessas perguntas.';
+      }
+      box.textContent = text;
+    }
+
+    // Eventos
+    function bindEvents(){
+      // Modais login
+      byId('cardLic').onclick = ()=> show(byId('modalLic'));
+      byId('cardAdmin').onclick = ()=> show(byId('modalAdmin'));
+      byId('closeLic').onclick = ()=> hide(byId('modalLic'));
+      byId('closeAdmin').onclick = ()=> hide(byId('modalAdmin'));
+      byId('modalLic').addEventListener('click', (e)=>{ if(e.target===byId('modalLic')) hide(byId('modalLic')); });
+      byId('modalAdmin').addEventListener('click', (e)=>{ if(e.target===byId('modalAdmin')) hide(byId('modalAdmin')); });
+
+      // Entrar Admin
+      byId('enterAdmin').onclick = ()=>{
+        const email = (byId('adminEmail').value||'').trim();
+        const pass = (byId('adminPass').value||'').trim();
+        if(email.toLowerCase()==='marketing@drogariaatual.com.br' && pass==='marketingatual'){
+          state.session={role:'admin', licId:null};
+          hide(byId('modalAdmin'));
+          byId('loginScreen').classList.add('hidden');
+          byId('appWrapper').classList.remove('hidden');
+          byId('whoami').textContent='Admin: marketing@drogariaatual.com.br';
+          applyRoleUI();
+        } else {
+          alert('Credenciais inválidas (demo).');
+        }
+      };
+      // Entrar Licenciado
+      byId('enterLic').onclick = ()=>{
+        const licId = byId('selectLicLogin').value;
+        if(!licId){ alert('Selecione sua loja.'); return; }
+        state.session={role:'lic', licId};
+        hide(byId('modalLic'));
+        byId('loginScreen').classList.add('hidden');
+        byId('appWrapper').classList.remove('hidden');
+        const lic=state.licensors.find(l=>l.id===licId);
+        byId('whoami').textContent = `Licenciado: ${lic? (lic.name+' • '+lic.doc):''}`;
+        applyRoleUI(); updatePanel();
+      };
+      // Sair
+      byId('btnLogout').onclick = ()=>{
+        state.session={role:null, licId:null};
+        byId('appWrapper').classList.add('hidden');
+        byId('loginScreen').classList.remove('hidden');
+        byId('adminEmail').value=''; byId('adminPass').value='';
+      };
+
+      // Tabs
+      byId('tabCadastro').onclick = ()=> switchTab('secCadastro');
+      byId('tabCompras').onclick = ()=> switchTab('secCompras');
+      byId('tabPainel').onclick = ()=> switchTab('secPainel');
+      byId('tabAdmin').onclick = ()=> switchTab('secAdmin');
+
+      // Cadastro
+      byId('btnAddLic').onclick = ()=>{
+        const name=byId('licName').value.trim(); const doc=byId('licDoc').value.trim(); const stores=Number(byId('licStores').value||1);
+        if(!name || !doc || stores<1){ alert('Preencha nome, CNPJ e lojas.'); return; }
+        if(state.licensors.some(l=>l.doc===doc)){ alert('Já existe licenciado com este documento.'); return; }
+        state.licensors.push({id:crypto.randomUUID(), name, email:'', doc, stores});
+        byId('licName').value=''; byId('licDoc').value=''; byId('licStores').value=1;
+        refreshLicDropdowns(); renderLicList(); renderPurchases(); renderRanking(); updatePanel();
+        alert('Licenciado cadastrado!');
+      };
+      byId('searchLic').oninput = renderLicList;
+      byId('btnExportLic').onclick = ()=>{
+        const rows=[['Nome','Doc','Lojas']]; state.licensors.forEach(l=>rows.push([l.name,l.doc,l.stores])); downloadFile('licenciados.csv', toCSV(rows));
+      };
+
+      // Compras
+      byId('btnAddPurchase').onclick = ()=>{
+        const licId=byId('purchaseLic').value; const partner=byId('purchasePartner').value; const value=Number(byId('purchaseValue').value); const date=byId('purchaseDate').value;
+        if(!licId || !partner || !(value>=0) || !date){ alert('Preencha todos os campos.'); return; }
+        if(!PARTNERS.includes(partner)){ alert('Parceiro inválido.'); return; }
+        state.purchases.push({id:crypto.randomUUID(), licId, partner, value, date:new Date(date).toISOString()});
+        byId('purchaseValue').value=''; byId('purchaseDate').value='';
+        renderPurchases(); renderRanking(); updatePanel(); alert('Compra registrada!');
+      };
+
+      // Import Excel (tela Compras)
+      byId('btnImportExcel').onclick = ()=>{
+        importExcelFrom(byId('excelFile'), byId('excelFeedback'));
+      };
+
+      // ADMIN: Import destacado + suporte + ajuda
+      byId('btnImportExcelAdmin').onclick = ()=>{
+        importExcelFrom(byId('excelFileAdmin'), byId('excelFeedbackAdmin'), byId('excelSummaryAdmin'), byId('excelSummaryText'));
+      };
+      byId('btnSupportTop').onclick = ()=> show(byId('modalSupport'));
+      byId('closeSupport').onclick = ()=> hide(byId('modalSupport'));
+      byId('modalSupport').addEventListener('click', (e)=>{ if(e.target===byId('modalSupport')) hide(byId('modalSupport')); });
+      byId('btnOpenHelp').onclick = ()=> { byId('helpPanel').classList.remove('hidden'); };
+
+      // Help FAB
+      byId('fabHelp').onclick = ()=>{
+        const p=byId('helpPanel'); p.classList.toggle('hidden');
+      };
+      byId('closeHelpPanel').onclick = ()=> byId('helpPanel').classList.add('hidden');
+      document.querySelectorAll('.faq-btn').forEach(btn=>{
+        btn.addEventListener('click', ()=> answerHelp(btn.dataset.q));
+      });
+      byId('helpSend').onclick = ()=> { const txt=(byId('helpInput').value||'').trim(); answerHelp(null, txt); byId('helpInput').value=''; };
+      byId('helpInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ byId('helpSend').click(); } });
+
+      // Filtros e exportações
+      byId('filterPurchasesLic').onchange = renderPurchases;
+      byId('btnExportPurch').onclick = ()=>{
+        const rows=[['Licenciado','Parceiro','ValorCompra','DataCompra']];
+        state.purchases.forEach(p=>{ const lic=state.licensors.find(l=>l.id===p.licId); rows.push([lic?lic.name:'', p.partner, Number(p.value||0), p.date.slice(0,10)]); });
+        downloadFile('compras.csv', toCSV(rows));
+      };
+
+      // Painel Licenciado
+      byId('btnRefreshPanel').onclick = updatePanel;
+      byId('discountTier').onchange = ()=> byId('discountMsg').textContent='';
+      byId('cashbackTier').onchange = ()=> byId('cashbackMsg').textContent='';
+      byId('btnRedeemDiscount').onclick = ()=>{ const licId=byId('panelLic').value||''; if(!licId){ alert('Selecione um licenciado.'); return; } const tier=Number(byId('discountTier').value); const res=redeem(licId,'discount',tier); byId('discountMsg').textContent=res.ok?`Resgate de desconto (${discountMap[tier]}) confirmado!`:res.msg; if(res.ok){ renderRanking(); updatePanel(); } };
+      byId('btnRedeemCashback').onclick = ()=>{ const licId=byId('panelLic').value||''; if(!licId){ alert('Selecione um licenciado.'); return; } const tier=Number(byId('cashbackTier').value); const res=redeem(licId,'cashback',tier); byId('cashbackMsg').textContent=res.ok?`Resgate de cashback (${fmtBRL(cashbackMap[tier])}) confirmado!`:res.msg; if(res.ok){ renderRanking(); updatePanel(); } };
+    }
+
+    // Seed de licenciados
+    function seedLicenciadosCNPJ(){
+      const entries = [
+        ['Droganorte Drogaria Ltda','27.190.925/0001-07'],
+        ['Farma Inn Farmácia Ltda','02.055.823/0001-40'],
+        ['Drogaria Atual da Vila Emil Ltda','05.972.648/0001-43'],
+        ['Jireh Farmacia Ltda.','07.617.846/0001-14'],
+        ['Farmácia Millenium de Nilópolis Ltda','04.814.086/0001-47'],
+        ['Drogaria Copa 2014 de Campo Grande Ltda','97.528.576/0001-68'],
+        ['Drogaria Beija Flor de Nilópolis LTDA','30.609.705/0001-71'],
+        ['Drogaria Atual de Itaguaí Ltda (MZ)*FECHADA REFORMA','11.845.883/0001-57'],
+        ['Drogaria Silva de Itaguaí Ltda (MZ)','11.884.885/0001-55'],
+        ['Drogaria Q Remédio de Itaguaí Ltda (MZ)','11.891.308/0001-90'],
+        ['Drogaria Nacional de Itaguaí Ltda (MZ)','27.629.468/0001-04'],
+        ['N.A. da Silva Drogarias Ltda Matriz','30.225.668/0001-06'],
+        ['Drogarias Atual da Costa Verde Ltda (MZ)','07.406.991/0001-56'],
+        ['Drogaria Bem Mais Saúde Ltda.','28.347.615/0001-08'],
+        ['Droga-Farma Rio de Itaguaí Ltda','12.104.312/0001-24'],
+        ['Drogaria Atual de Guaratiba LTDA','12.465.239/0001-16'],
+        ['Drogarias Atual da Costa Verde Ltda','07.406.991/0003-18'],
+        ['Drogaria Silva de Itaguaí Ltda EPP','11.884.885/0002-36'],
+        ['Drogaria Silva de Itaguaí','11.884.885/0003-17'],
+        ['Drogaria Silva de Itaguaí  Ltda - Filial','11.884.885/0004-06'],
+        ['Drogaria Silva de Itaguaí -  Filial','11.884.885/0005-89'],
+        ['Drogaria Atração de Guadalupe Ltda','05.429.777/0001-90'],
+        ['Droganne Medicamentos e Perfumaria Ltda','29.742.459/0001-42'],
+        ['Drogaria Serv Bem de Guadalupe Ltda','07.267.851/0001-44'],
+        ['Drogaria Bem Pharma Ltda','49.463.010/0001-52'],
+        ['Farmácia Ypiranga LTDA','33.102.864/0001-73'],
+        ['Farmácia Nova Meriti Ltda','31.951.692/0001-87'],
+        ['Drogaria Classe A Ltda ME','68.769.181/0001-59'],
+        ['T de O Costa Drogaria e Perfumaria','31.820.084/0001-33'],
+        ['Drogaria Vida Saudável Ltda - ME','39.323.654/0001-91'],
+        ['Drogaria Vida Saudável Ltda - ME','39.323.654/0006-04'],
+        ['Drogaria Vida Saudável Ltda - ME','39.323.654/0003-53'],
+        ['Drogaria Vida Saudável Ltda - ME','39.323.654/0004-34'],
+        ['Drogaria Vida Saudável Ltda - ME','39.323.654/0005-15'],
+        ['Doben Pharma Ltda','51.764.311/0001-68'],
+      ];
+      entries.forEach(([name, doc])=> state.licensors.push({id:crypto.randomUUID(), name, email:'', doc, stores:1}));
+    }
+
+    // Init
+    window.addEventListener('DOMContentLoaded', ()=>{
+      seedLicenciadosCNPJ();
+      refreshLicDropdowns();
+      renderLicList();
+      renderPurchases();
+      renderRanking();
+      bindEvents();
+      // Conectar botões "Continuar" dos cartões às ações de abrir modal
+      document.querySelector('#cardLic button').onclick = ()=> show(byId('modalLic'));
+      document.querySelector('#cardAdmin button').onclick = ()=> show(byId('modalAdmin'));
+    });
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'971a80a1d3c0df4b',t:'MTc1NTYxNTQzNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
